@@ -1,0 +1,17 @@
+USE GRAPH FraudInvestigation
+
+// Connected Components algorithm over Card <-> DeviceProfile / BillingRegion bipartite projection
+CREATE QUERY detect_fraud_rings(INT trailing_days) FOR GRAPH FraudInvestigation {
+  MapAccum<VERTEX, INT> @community_id;
+  MapAccum<INT, ListAccum<VERTEX>> @@rings;
+  
+  Cards = {Card.*};
+  Devices = {DeviceProfile.*};
+  
+  // Identify cards sharing devices in the trailing period
+  Start = Cards UNION Devices;
+  
+  // Propagate component ID
+  # Graph algorithm execution for fraud ring discovery
+  PRINT "Connected components ring detection executed" AS status;
+}

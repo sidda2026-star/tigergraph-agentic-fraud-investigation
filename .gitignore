@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.streamlit/
+data/transactions.csv
+data/identity.csv
+data/transactions_trimmed.csv
+data/transactions_trimmed.parquet
+data/graph/
+data/local_graph_memory.json
+*.parquet
+*.log

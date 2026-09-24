@@ -1,0 +1,32 @@
+USE GRAPH FraudInvestigation
+
+CREATE LOADING JOB load_fraud_data FOR GRAPH FraudInvestigation {
+  DEFINE FILENAME f_customers;
+  DEFINE FILENAME f_cards;
+  DEFINE FILENAME f_txns;
+  DEFINE FILENAME f_devices;
+  DEFINE FILENAME f_emails;
+  DEFINE FILENAME f_regions;
+  DEFINE FILENAME f_closed_cases;
+  DEFINE FILENAME f_case_txns;
+  DEFINE FILENAME f_case_cards;
+
+  LOAD f_customers TO VERTEX Customer VALUES($0, $1) USING HEADER="true", SEPARATOR=",";
+  LOAD f_cards TO VERTEX Card VALUES($0, $1, $2, $3, $4, $5, $6, $7) USING HEADER="true", SEPARATOR=",";
+  LOAD f_cards TO EDGE OWNS VALUES($1, $0) USING HEADER="true", SEPARATOR=",";
+  LOAD f_devices TO VERTEX DeviceProfile VALUES($0, $1, $2, $3, $4, $5, $6) USING HEADER="true", SEPARATOR=",";
+  LOAD f_emails TO VERTEX EmailDomain VALUES($0) USING HEADER="true", SEPARATOR=",";
+  LOAD f_regions TO VERTEX BillingRegion VALUES($0) USING HEADER="true", SEPARATOR=",";
+  
+  LOAD f_txns TO VERTEX Transaction VALUES($0, $1, $2, $3, $4, $5, $10, $11, $6, $7, _, $8, $9, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, _, _, _, _) USING HEADER="true", SEPARATOR=",";
+  LOAD f_txns TO EDGE MADE VALUES($2, $0) USING HEADER="true", SEPARATOR=",";
+  LOAD f_txns TO EDGE PURCHASER_EMAIL VALUES($0, $8) WHERE $8 IS NOT NULL AND $8 != "" USING HEADER="true", SEPARATOR=",";
+  LOAD f_txns TO EDGE RECIPIENT_EMAIL VALUES($0, $9) WHERE $9 IS NOT NULL AND $9 != "" USING HEADER="true", SEPARATOR=",";
+  LOAD f_txns TO EDGE BILLED_IN VALUES($0, $6) WHERE $6 IS NOT NULL AND $6 != "" USING HEADER="true", SEPARATOR=",";
+
+  LOAD f_closed_cases TO VERTEX ClosedCase VALUES($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) USING HEADER="true", SEPARATOR=",";
+  LOAD f_closed_cases TO EDGE ON_CARD VALUES($0, $2) USING HEADER="true", SEPARATOR=",";
+
+  LOAD f_case_txns TO EDGE INVOLVES VALUES($0, $1) USING HEADER="true", SEPARATOR=",";
+  LOAD f_case_cards TO EDGE CONNECTED_TO VALUES($0, $2) USING HEADER="true", SEPARATOR=",";
+}

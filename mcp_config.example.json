@@ -1,0 +1,13 @@
+{
+  "name": "tigergraph-fraud-tools",
+  "repository": "https://github.com/tigergraph/tigergraph-mcp",
+  "command": "python",
+  "args": ["-m", "tigergraph_mcp"],
+  "env": {
+    "TIGERGRAPH_HOST": "${env:TIGERGRAPH_HOST}",
+    "TIGERGRAPH_GRAPH": "${env:TIGERGRAPH_GRAPH}",
+    "TIGERGRAPH_USERNAME": "${env:TIGERGRAPH_USERNAME}",
+    "TIGERGRAPH_PASSWORD": "${env:TIGERGRAPH_PASSWORD}"
+  },
+  "tools": ["card_window", "device_neighbors", "region_neighbors", "prior_cases_for_device"]
+}

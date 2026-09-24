@@ -1,0 +1,99 @@
+USE GRAPH FraudInvestigation
+
+CREATE QUERY card_window(STRING card_id, DATETIME start_ts, DATETIME end_ts) FOR GRAPH FraudInvestigation {
+  Start = {Card.*};
+  TargetCard = SELECT c FROM Start:c WHERE c.id == card_id;
+  Txns = SELECT t FROM TargetCard:c -(MADE)-> Transaction:t
+         WHERE t.ts >= start_ts AND t.ts <= end_ts;
+  PRINT Txns;
+}
+
+CREATE QUERY card_baseline(STRING card_id, DATETIME before_ts) FOR GRAPH FraudInvestigation {
+  Start = {Card.*};
+  TargetCard = SELECT c FROM Start:c WHERE c.id == card_id;
+  Txns = SELECT t FROM TargetCard:c -(MADE)-> Transaction:t
+         WHERE t.ts < before_ts;
+  PRINT Txns;
+}
+
+CREATE QUERY device_neighbors(STRING device_id, INT window_days) FOR GRAPH FraudInvestigation {
+  Start = {DeviceProfile.*};
+  TargetDevice = SELECT d FROM Start:d WHERE d.id == device_id;
+  Txns = SELECT t FROM TargetDevice:d <-(FROM_DEVICE)- Transaction:t;
+  Cards = SELECT c FROM Txns:t <-(MADE)- Card:c;
+  Cases = SELECT cc FROM Cards:c <-(ON_CARD)- ClosedCase:cc;
+  PRINT TargetDevice, Txns, Cards, Cases;
+}
+
+CREATE QUERY region_neighbors(STRING region, INT window_days) FOR GRAPH FraudInvestigation {
+  Start = {BillingRegion.*};
+  TargetRegion = SELECT r FROM Start:r WHERE r.id == region;
+  Txns = SELECT t FROM TargetRegion:r <-(BILLED_IN)- Transaction:t;
+  Cards = SELECT c FROM Txns:t <-(MADE)- Card:c;
+  PRINT TargetRegion, Txns, Cards;
+}
+
+CREATE QUERY email_neighbors(STRING email_domain) FOR GRAPH FraudInvestigation {
+  Start = {EmailDomain.*};
+  TargetDomain = SELECT e FROM Start:e WHERE e.id == email_domain;
+  Txns = SELECT t FROM TargetDomain:e <-(RECIPIENT_EMAIL)- Transaction:t;
+  Cards = SELECT c FROM Txns:t <-(MADE)- Card:c;
+  PRINT TargetDomain, Txns, Cards;
+}
+
+CREATE QUERY similar_closed_cases(STRING card_id, STRING device_id, STRING region) FOR GRAPH FraudInvestigation {
+  Cards = {Card.*};
+  Devices = {DeviceProfile.*};
+  Regions = {BillingRegion.*};
+  
+  C1 = SELECT cc FROM Cards:c <-(ON_CARD)- ClosedCase:cc WHERE c.id == card_id;
+  
+  DevTx = SELECT t FROM Devices:d <-(FROM_DEVICE)- Transaction:t WHERE d.id == device_id;
+  DevCards = SELECT c FROM DevTx:t <-(MADE)- Card:c;
+  C2 = SELECT cc FROM DevCards:c <-(ON_CARD)- ClosedCase:cc;
+  
+  RegTx = SELECT t FROM Regions:r <-(BILLED_IN)- Transaction:t WHERE r.id == region;
+  RegCards = SELECT c FROM RegTx:t <-(MADE)- Card:c;
+  C3 = SELECT cc FROM RegCards:c <-(ON_CARD)- ClosedCase:cc;
+  
+  AllCases = C1 UNION C2 UNION C3;
+  PRINT AllCases;
+}
+
+CREATE QUERY case_write(
+    STRING graph_case_id,
+    STRING case_id,
+    STRING verdict,
+    DOUBLE fraud_probability,
+    STRING pattern,
+    STRING pattern_description,
+    STRING status,
+    DOUBLE exposure_usd,
+    STRING summary,
+    SET<STRING> affected_txns,
+    SET<STRING> connected_cards,
+    SET<STRING> connected_devices,
+    SET<STRING> similar_closed
+) FOR GRAPH FraudInvestigation {
+  
+  INSERT INTO Case (PRIMARY_ID, case_id, verdict, fraud_probability, pattern, pattern_description, status, exposure_usd, summary)
+  VALUES (graph_case_id, case_id, verdict, fraud_probability, pattern, pattern_description, status, exposure_usd, summary);
+  
+  FOREACH txn_id IN affected_txns DO
+    INSERT INTO CASE_INVOLVES (FROM, TO) VALUES (graph_case_id Case, txn_id Transaction);
+  END;
+  
+  FOREACH c_id IN connected_cards DO
+    INSERT INTO CASE_CONNECTED_TO (FROM, TO) VALUES (graph_case_id Case, c_id Card);
+  END;
+  
+  FOREACH d_id IN connected_devices DO
+    INSERT INTO CASE_USED_DEVICE (FROM, TO) VALUES (graph_case_id Case, d_id DeviceProfile);
+  END;
+
+  FOREACH cc_id IN similar_closed DO
+    INSERT INTO SIMILAR_TO (FROM, TO, similarity) VALUES (graph_case_id Case, cc_id ClosedCase, 0.95);
+  END;
+
+  PRINT "SUCCESS" AS result;
+}

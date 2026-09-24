@@ -1,0 +1,32 @@
+USE GRAPH FraudInvestigation
+
+DEFINE FILENAME f_customers = "customers.csv";
+DEFINE FILENAME f_cards = "cards.csv";
+DEFINE FILENAME f_customer_cards = "customer_cards.csv";
+DEFINE FILENAME f_transactions = "transactions.csv";
+DEFINE FILENAME f_devices = "devices.csv";
+DEFINE FILENAME f_transaction_devices = "transaction_devices.csv";
+DEFINE FILENAME f_emails = "emails.csv";
+DEFINE FILENAME f_regions = "regions.csv";
+DEFINE FILENAME f_cases = "closed_cases.csv";
+DEFINE FILENAME f_case_transactions = "case_transactions.csv";
+DEFINE FILENAME f_case_cards = "case_cards.csv";
+
+CREATE LOADING JOB load_fraud_data FOR GRAPH FraudInvestigation {
+  LOAD f_customers TO VERTEX Customer VALUES ($0, $1) USING HEADER="true", SEPARATOR=",";
+  LOAD f_cards TO VERTEX Card VALUES ($0, $1, $2, $3, $4) USING HEADER="true", SEPARATOR=",";
+  LOAD f_transactions TO VERTEX Transaction VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27) USING HEADER="true", SEPARATOR=",";
+  LOAD f_devices TO VERTEX DeviceProfile VALUES ($0, $1, $2, $3, $4, $5, $6) USING HEADER="true", SEPARATOR=",";
+  LOAD f_emails TO VERTEX EmailDomain VALUES ($0) USING HEADER="true", SEPARATOR=",";
+  LOAD f_regions TO VERTEX BillingRegion VALUES ($0) USING HEADER="true", SEPARATOR=",";
+  LOAD f_cases TO VERTEX ClosedCase VALUES ($0, $1, $2, $3, $4, $5, $6, $7, $8, $9) USING HEADER="true", SEPARATOR=",";
+
+  LOAD f_customer_cards TO EDGE OWNS VALUES ($0, $1) USING HEADER="true", SEPARATOR=",";
+  LOAD f_transactions TO EDGE MADE VALUES ($2, $0) USING HEADER="true", SEPARATOR=",";
+  LOAD f_transaction_devices TO EDGE FROM_DEVICE VALUES ($0, $1) USING HEADER="true", SEPARATOR=",";
+  LOAD f_transactions TO EDGE PURCHASER_EMAIL VALUES ($0, $8) USING HEADER="true", SEPARATOR=",";
+  LOAD f_transactions TO EDGE BILLED_IN VALUES ($0, $6) USING HEADER="true", SEPARATOR=",";
+  LOAD f_case_transactions TO EDGE INVOLVES VALUES ($0, $1) USING HEADER="true", SEPARATOR=",";
+  LOAD f_case_cards TO EDGE ON_CARD VALUES ($0, $1) USING HEADER="true", SEPARATOR=",";
+  LOAD f_case_cards TO EDGE CONNECTED_TO VALUES ($0, $2) USING HEADER="true", SEPARATOR=",";
+}

@@ -1,0 +1,33 @@
+USE GRAPH FraudInvestigation
+
+CREATE QUERY card_window(STRING card_id, DATETIME start_ts, DATETIME end_ts) FOR GRAPH FraudInvestigation {
+  Start = {Card.*};
+  Txns = SELECT t FROM Start:c -(MADE)-> Transaction:t
+         WHERE c.id == card_id AND t.ts >= start_ts AND t.ts <= end_ts;
+  PRINT Txns;
+}
+
+CREATE QUERY device_neighbors(STRING device_id) FOR GRAPH FraudInvestigation {
+  Start = {DeviceProfile.*};
+  Txns = SELECT t FROM Start:d <-(FROM_DEVICE)- Transaction:t
+         WHERE d.id == device_id;
+  Cards = SELECT c FROM Txns:t <-(MADE)- Card:c;
+  PRINT Txns, Cards;
+}
+
+CREATE QUERY region_neighbors(STRING region) FOR GRAPH FraudInvestigation {
+  Start = {BillingRegion.*};
+  Txns = SELECT t FROM Start:r <-(BILLED_IN)- Transaction:t
+         WHERE r.id == region;
+  Cards = SELECT c FROM Txns:t <-(MADE)- Card:c;
+  PRINT Txns, Cards;
+}
+
+CREATE QUERY prior_cases_for_device(STRING device_id) FOR GRAPH FraudInvestigation {
+  Start = {DeviceProfile.*};
+  Txns = SELECT t FROM Start:d <-(FROM_DEVICE)- Transaction:t
+         WHERE d.id == device_id;
+  Cards = SELECT c FROM Txns:t <-(MADE)- Card:c;
+  Cases = SELECT cc FROM Cards:c <-(ON_CARD)- ClosedCase:cc;
+  PRINT Cases, Cards, Txns;
+}
