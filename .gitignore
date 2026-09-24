@@ -11,3 +11,5 @@ data/graph/
 data/local_graph_memory.json
 *.parquet
 *.log
+temp_graph.html
+lib/
