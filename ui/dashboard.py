@@ -14,7 +14,21 @@ import pandas as pd
 from pyvis.network import Network
 
 # Ensure project root is in python path
-ROOT_DIR = Path(__file__).resolve().parent.parent
+def _get_root_dir() -> Path:
+    candidates = [
+        Path(__file__).resolve().parent.parent,
+        Path(__file__).resolve().parent,
+        Path.cwd(),
+    ]
+    for c in candidates:
+        if (c / "data" / "transactions_trimmed.parquet").exists() or (c / "data" / "case_pack.csv").exists():
+            return c
+    return Path(__file__).resolve().parent.parent
+
+ROOT_DIR = globals().get("ROOT_DIR", _get_root_dir())
+if not (ROOT_DIR / "data" / "transactions_trimmed.parquet").exists():
+    ROOT_DIR = _get_root_dir()
+
 sys.path.insert(0, str(ROOT_DIR))
 
 from graph.store import get_graph_store

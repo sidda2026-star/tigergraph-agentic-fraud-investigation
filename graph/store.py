@@ -82,7 +82,12 @@ class LocalGraphStore(GraphStore):
     """Deterministic, high-performance in-memory Graph & Vector store using DuckDB, NetworkX, and TF-IDF."""
 
     def __init__(self, data_dir: Path | str = "data"):
-        self.data_dir = Path(data_dir).resolve()
+        data_dir_path = Path(data_dir).resolve()
+        if not (data_dir_path / "transactions_trimmed.parquet").exists():
+            repo_root = Path(__file__).resolve().parent.parent
+            if (repo_root / "data" / "transactions_trimmed.parquet").exists():
+                data_dir_path = repo_root / "data"
+        self.data_dir = data_dir_path
         self.con = duckdb.connect()
         self._init_tables()
         self._init_vector_store()
